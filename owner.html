@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Owner dashboard · Auto Haus</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#07090d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Auto Haus">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090d'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23f0b44c'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%2366c2ff' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Owner dashboard: same night palette as the 3D company view. Gold = money and decisions,
+   ice blue = projects in build, mint = paid / approved, coral = late. Phone first, bottom tab bar. */
+:root {
+  --bg: #07090d; --panel: #0d1219; --panel2: #121821; --line: #1e2734; --line2: #2a3546;
+  --fg: #ece8df; --muted: #8b94a4; --dim: #5d6676;
+  --gold: #f0b44c; --ice: #66c2ff; --mint: #5fe0b7; --coral: #ff7a6b;
+  --display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; min-width: 0; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--display); overflow-x: clip; -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* header */
+.top {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(7, 9, 13, .92); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
+}
+.top .ttl { flex: 1; }
+.top small { display: block; font: 500 11px/1.2 var(--mono); color: var(--gold); letter-spacing: .06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.015em; line-height: 1.15; }
+.iconbtn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); text-decoration: none; }
+.iconbtn svg { width: 22px; height: 22px; }
+.logo svg { width: 26px; height: 26px; }
+
+main { max-width: 980px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(110px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+section { margin-bottom: 26px; }
+h2 { font-size: 18px; font-weight: 800; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+h2 .count { font: 600 12px var(--mono); color: var(--bg); background: var(--gold); border-radius: 999px; padding: 2px 8px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+
+/* banners */
+.banner { border: 1px solid var(--line2); background: var(--panel2); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.banner.warn { border-color: var(--coral); }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 700px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 13px; }
+.kpi span { display: block; font-size: 13px; color: var(--muted); }
+.kpi b { display: block; font: 600 clamp(19px, 5.4vw, 26px)/1.15 var(--mono); font-variant-numeric: tabular-nums; margin: 4px 0 2px; overflow-wrap: anywhere; color: var(--c, var(--fg)); }
+.kpi small { font-size: 12.5px; color: var(--dim); }
+
+/* "needs you" + list items */
+.list { display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.item.hot { border-color: color-mix(in srgb, var(--c, var(--gold)) 55%, var(--line)); }
+.itm { display: grid; gap: 2px; text-align: left; background: none; border: 0; padding: 12px 14px; width: 100%; }
+.itm .row1 { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
+.itm strong { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
+.itm .sub { font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
+.acts:empty { display: none; }
+.calm { color: var(--muted); background: var(--panel); border: 1px dashed var(--line2); border-radius: 12px; padding: 14px; font-size: 15px; }
+
+.pill { font: 600 10.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 5px 8px; border-radius: 999px; border: 1px solid currentColor; color: var(--c, var(--muted)); white-space: nowrap; flex: none; }
+
+/* buttons */
+.btn { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel2); font-size: 14.5px; font-weight: 600; }
+.btn.go { background: var(--mint); border-color: var(--mint); color: #062018; }
+.btn.gold { background: var(--gold); border-color: var(--gold); color: #1d1404; }
+.btn.no { color: var(--coral); border-color: color-mix(in srgb, var(--coral) 45%, var(--line2)); }
+.btn.big { min-height: 48px; padding: 10px 18px; font-size: 16px; }
+.linkbtn { background: none; border: 0; padding: 10px 0; color: var(--ice); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; }
+
+/* bars */
+.bars { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.bar { display: grid; grid-template-columns: 4.6em minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13.5px; }
+.bar > span { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar i { display: block; height: 10px; border-radius: 3px; background: var(--line); position: relative; overflow: hidden; }
+.bar i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--c, var(--gold)); border-radius: 3px; }
+.bar b { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.bar.zero { opacity: .45; }
+
+/* toolbar above lists */
+.tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 38px; padding: 6px 13px; border-radius: 999px; border: 1px solid var(--line2); background: none; font-size: 14px; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); font-weight: 600; }
+.total { font-size: 13.5px; color: var(--muted); margin: -4px 0 10px; }
+.search { width: 100%; min-height: 44px; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel2); padding: 8px 12px; font-size: 16px; margin-bottom: 12px; }
+
+/* empty state */
+.empty { background: radial-gradient(120% 90% at 85% 0%, rgba(240, 180, 76, .16), transparent 60%), var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px 18px; }
+.empty h2 { font-size: 24px; }
+.empty p { color: var(--muted); margin-bottom: 16px; max-width: 46ch; }
+.empty .row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* settings */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }
+.card p { font-size: 14.5px; color: var(--muted); }
+.card .row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* bottom tab bar */
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: rgba(10, 13, 19, .96); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-top: 1px solid var(--line);
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.tabs a { position: relative; min-height: 58px; display: grid; place-items: center; align-content: center; gap: 3px; color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600; }
+.tabs a svg { width: 22px; height: 22px; }
+.tabs a[aria-current="page"] { color: var(--gold); }
+.tabs .badge { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--coral); color: #1a0703; font: 700 10.5px/17px var(--mono); text-align: center; }
+.fab {
+  position: fixed; z-index: 6; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  width: 56px; height: 56px; border-radius: 18px; border: 0; background: var(--gold); color: #1d1404; display: grid; place-items: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .08) inset;
+}
+.fab svg { width: 26px; height: 26px; }
+
+/* sheets (forms, add menu, confirm) */
+dialog { color: var(--fg); background: var(--panel); border: 1px solid var(--line2); padding: 0; }
+dialog::backdrop { background: rgba(2, 3, 6, .66); }
+dialog.sheet { width: 100%; max-width: 560px; margin: auto auto 0; max-height: 92vh; max-height: calc(100dvh - 20px); overflow: auto; border-radius: 18px 18px 0 0; border-bottom: 0; overscroll-behavior: contain; }
+@media (min-width: 640px) { dialog.sheet { margin: auto; border-radius: 18px; border-bottom: 1px solid var(--line2); } }
+.sh-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.sh-head h2 { margin: 0; font-size: 20px; }
+.sh-body { padding: 14px 16px 6px; display: grid; gap: 12px; }
+.sh-foot { position: sticky; bottom: 0; display: flex; gap: 10px; justify-content: space-between; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border-top: 1px solid var(--line); }
+.sh-foot .btn.gold { margin-left: auto; min-width: 120px; }
+.fld { display: grid; gap: 5px; }
+.fld > span { font-size: 14px; font-weight: 600; color: var(--muted); }
+.fld em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--dim); margin-left: 4px; }
+.fld input, .fld select, .fld textarea { width: 100%; min-height: 46px; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel2); padding: 10px 12px; font-size: 16px; }
+.fld select { -webkit-appearance: none; appearance: none; padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b94a4' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 18px; }
+.fld textarea { resize: vertical; min-height: 84px; }
+.fld input:focus, .fld select:focus, .fld textarea:focus { outline: 2px solid var(--gold); outline-offset: 0; border-color: transparent; }
+.err { color: var(--coral); font-size: 14px; min-height: 1.2em; }
+.menu { display: grid; gap: 8px; padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.menu button { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); text-align: left; font-size: 16px; font-weight: 600; }
+.menu button i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+dialog.ask { width: min(420px, calc(100% - 32px)); border-radius: 16px; }
+.ask p { padding: 18px 18px 6px; font-size: 16px; }
+.ask .row { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 18px 18px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(140px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 12px); z-index: 20; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 600; font-size: 14.5px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; width: max-content; max-width: calc(100vw - 32px); text-align: center; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script>
+</head>
+<body>
+<header class="top">
+  <a class="iconbtn logo" href="./" aria-label="Back to the 3D company view">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="6" fill="#f0b44c"/><circle cx="16" cy="16" r="11" fill="none" stroke="#66c2ff" stroke-width="1.6"/></svg>
+  </a>
+  <div class="ttl"><small id="company"></small><h1 id="title">Overview</h1></div>
+  <a class="iconbtn" href="#settings" aria-label="Settings and backup">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </a>
+</header>
+
+<main id="view" aria-live="polite"></main>
+
+<button class="fab" type="button" data-act="quick" aria-label="Add a project, invoice, client or approval">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<nav class="tabs" aria-label="Dashboard sections">
+  <a href="#overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Overview</a>
+  <a href="#projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projects</a>
+  <a href="#invoices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Invoices</a>
+  <a href="#clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>Clients</a>
+  <a href="#approvals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.6 2.6L16 9.8"/></svg>Approvals<span class="badge" id="badge" hidden></span></a>
+</nav>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle"></dialog>
+
+<dialog class="sheet" id="quick" aria-label="Add">
+  <div class="sh-head"><h2>Add</h2><button class="iconbtn" type="button" data-act="close" aria-label="Close">✕</button></div>
+  <div class="menu">
+    <button type="button" data-act="new" data-kind="approval" style="--c: var(--gold)"><i></i>Approval needed from you</button>
+    <button type="button" data-act="new" data-kind="invoice" style="--c: var(--mint)"><i></i>Invoice</button>
+    <button type="button" data-act="new" data-kind="project" style="--c: var(--ice)"><i></i>Project</button>
+    <button type="button" data-act="new" data-kind="client" style="--c: var(--fg)"><i></i>Client</button>
+  </div>
+</dialog>
+
+<dialog class="ask" id="ask">
+  <p id="askText"></p>
+  <div class="row"><button class="btn" type="button" value="no">Cancel</button><button class="btn gold" type="button" value="yes" id="askOk">OK</button></div>
+</dialog>
+
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+  // ---------- data ----------
+  const KEY = 'autohaus.owner.v1';
+  const LISTS = ['clients', 'projects', 'invoices', 'approvals'];
+  const STAGES = ['Proposal', 'Design', 'Build', 'QA', 'Security', 'Release', 'Handover', 'Care plan', 'Closed'];
+  const AGENTS = ['COO', 'Project Manager', 'Research', 'AI Orchestration', 'Creative & Design', 'Development', 'Quality Assurance', 'Security', 'Build & DevOps', 'Commercial', 'Client Relations', 'Delivery & Ownership', 'Client Support'];
+  const CURRENCIES = ['USD', 'EUR', 'GBP', 'LBP', 'AED', 'SAR', 'QAR', 'KWD', 'CAD', 'AUD'];
+  const TITLES = { overview: 'Overview', projects: 'Projects', invoices: 'Invoices', clients: 'Clients', approvals: 'Approvals', settings: 'Settings' };
+
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const today = () => iso(new Date());
+  const parse = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+  const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
+  const daysFrom = (a, b) => Math.round((parse(b) - parse(a)) / 864e5); // b minus a, in days
+  const sum = (arr, k = 'amount') => arr.reduce((s, x) => s + (+x[k] || 0), 0);
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+  function blank() {
+    return { v: 1, settings: { company: 'Auto Haus Software Company', currency: 'USD' }, clients: [], projects: [], invoices: [], approvals: [] };
+  }
+  function normalize(d) {
+    const b = blank();
+    if (!d || typeof d !== 'object') return b;
+    for (const k of LISTS) b[k] = Array.isArray(d[k]) ? d[k].filter(x => x && typeof x === 'object' && typeof x.id === 'string') : [];
+    if (d.settings && typeof d.settings === 'object') b.settings = { ...b.settings, ...d.settings };
+    return b;
+  }
+  let storageOk = true;
+  function load() {
+    try { const raw = localStorage.getItem(KEY); return raw ? normalize(JSON.parse(raw)) : blank(); }
+    catch (e) { storageOk = false; return blank(); }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(db)); storageOk = true; }
+    catch (e) { storageOk = false; toast("Couldn't save on this phone. Storage may be full or blocked."); }
+  }
+  let db = load();
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+
+  const byId = (list, id) => db[list].find(x => x.id === id);
+  const clientName = id => (id && byId('clients', id)?.name) || 'No client';
+  const projectName = id => (id && byId('projects', id)?.name) || '';
+
+  function money(n, compact) {
+    const v = +n || 0, cur = db.settings.currency || 'USD';
+    const f = compact ? { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }
+      : (Number.isInteger(v) ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, ...f }).format(v); }
+    catch (e) { return cur + ' ' + v.toFixed(Number.isInteger(v) ? 0 : 2); }
+  }
+  function fmtDate(s) {
+    if (!s) return '';
+    const d = parse(s);
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
+  }
+  function dueText(due) {
+    if (!due) return '';
+    const d = daysFrom(today(), due);
+    if (d < 0) return `${plural(-d, 'day')} late`;
+    if (d === 0) return 'due today';
+    if (d === 1) return 'due tomorrow';
+    return `due ${fmtDate(due)}`;
+  }
+  // An invoice is overdue when it was sent, is not paid, and its due date has passed.
+  function invState(i) {
+    if (i.status === 'paid') return 'paid';
+    if (i.status === 'sent' && i.due && daysFrom(i.due, today()) > 0) return 'overdue';
+    return i.status === 'sent' ? 'sent' : 'draft';
+  }
+  const INV_PILL = { draft: ['Draft', 'var(--muted)'], sent: ['Sent', 'var(--gold)'], overdue: ['Overdue', 'var(--coral)'], paid: ['Paid', 'var(--mint)'] };
+  const APP_PILL = { pending: ['Waiting', 'var(--gold)'], approved: ['Approved', 'var(--mint)'], declined: ['Declined', 'var(--coral)'] };
+  const pill = ([label, c]) => `<span class="pill" style="--c:${c}">${esc(label)}</span>`;
+  function nextInvoiceNo() {
+    const n = db.invoices.reduce((m, i) => { const x = /(\d+)\s*$/.exec(i.number || ''); return x ? Math.max(m, +x[1]) : m; }, 0);
+    return 'INV-' + String(n + 1).padStart(4, '0');
+  }
+
+  // ---------- forms ----------
+  const clientOptions = () => [['', 'No client'], ...db.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(c => [c.id, c.name])];
+  const projectOptions = () => [['', 'No project'], ...db.projects.filter(p => p.stage !== 'Closed').map(p => [p.id, p.name])];
+  const FORMS = {
+    client: { list: 'clients', title: 'client', fields: [
+      { k: 'name', label: 'Name', req: true, placeholder: 'Person or business' },
+      { k: 'email', label: 'Email', type: 'email' },
+      { k: 'phone', label: 'Phone', type: 'tel' },
+      { k: 'notes', label: 'Notes', type: 'textarea' }] },
+    project: { list: 'projects', title: 'project', fields: [
+      { k: 'name', label: 'Project name', req: true, placeholder: 'e.g. Clinic booking website' },
+      { k: 'clientId', label: 'Client', type: 'select', options: clientOptions },
+      { k: 'stage', label: 'Stage', type: 'select', options: () => STAGES.map(s => [s, s]), def: 'Proposal' },
+      { k: 'value', label: 'Project value', type: 'money' },
+      { k: 'due', label: 'Due date', type: 'date' },
+      { k: 'notes', label: 'Notes', type: 'textarea' }] },
+    invoice: { list: 'invoices', title: 'invoice', fields: [
+      { k: 'number', label: 'Invoice number', req: true, def: nextInvoiceNo },
+      { k: 'clientId', label: 'Client', type: 'select', options: clientOptions },
+      { k: 'projectId', label: 'Project', type: 'select', options: projectOptions },
+      { k: 'amount', label: 'Amount', type: 'money', req: true },
+      { k: 'status', label: 'Status', type: 'select', options: () => [['draft', 'Draft, not sent yet'], ['sent', 'Sent, waiting for payment'], ['paid', 'Paid']], def: 'draft' },
+      { k: 'issued', label: 'Issue date', type: 'date', def: today },
+      { k: 'due', label: 'Payment due', type: 'date', def: () => addDays(today(), 14) },
+      { k: 'paidOn', label: 'Paid on', type: 'date', hint: 'filled in for you when marked paid' }] },
+    approval: { list: 'approvals', title: 'approval', fields: [
+      { k: 'title', label: 'What needs your approval', req: true, placeholder: 'e.g. Deploy the clinic site to production' },
+      { k: 'from', label: 'Asked by', type: 'select', options: () => AGENTS.map(a => [a, a]), def: 'Build & DevOps' },
+      { k: 'projectId', label: 'Project', type: 'select', options: projectOptions },
+      { k: 'requested', label: 'Asked on', type: 'date', def: today },
+      { k: 'status', label: 'Your decision', type: 'select', options: () => [['pending', 'Not decided yet'], ['approved', 'Approved'], ['declined', 'Declined']], def: 'pending' },
+      { k: 'notes', label: 'Details', type: 'textarea' }] },
+  };
+  // When editing, a linked project that is now closed still needs to show in the dropdown.
+  function withCurrent(opts, v) { return v && !opts.some(o => o[0] === v) ? [...opts, [v, projectName(v) || '(removed)']] : opts; }
+
+  function field(f, v) {
+    const id = 'f_' + f.k, req = f.req ? ' required' : '';
+    let input;
+    if (f.type === 'select') {
+      input = `<select id="${id}" name="${f.k}">${withCurrent(f.options(), v).map(([val, lab]) => `<option value="${esc(val)}"${String(val) === String(v ?? '') ? ' selected' : ''}>${esc(lab)}</option>`).join('')}</select>`;
+    } else if (f.type === 'textarea') {
+      input = `<textarea id="${id}" name="${f.k}" rows="3">${esc(v)}</textarea>`;
+    } else if (f.type === 'money') {
+      input = `<input id="${id}" name="${f.k}" type="number" inputmode="decimal" step="0.01" min="0" value="${v === '' || v == null || (v === 0 && !f.req) ? '' : esc(v)}"${req} placeholder="0">`;
+    } else {
+      const type = f.type || 'text', ac = type === 'email' ? ' autocomplete="email"' : type === 'tel' ? ' autocomplete="tel"' : ' autocomplete="off"';
+      input = `<input id="${id}" name="${f.k}" type="${type}" value="${esc(v)}"${req}${ac}${f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : ''}>`;
+    }
+    const note = f.req ? '<em>required</em>' : f.hint ? `<em>${esc(f.hint)}</em>` : '';
+    return `<label class="fld" for="${id}"><span>${esc(f.label)}${note}</span>${input}</label>`;
+  }
+
+  const sheet = $('#sheet');
+  function openForm(kind, id) {
+    const F = FORMS[kind]; if (!F) return;
+    const item = id ? byId(F.list, id) : null;
+    if (id && !item) return;
+    const vals = item ? { ...item } : Object.fromEntries(F.fields.map(f => [f.k, typeof f.def === 'function' ? f.def() : (f.def ?? '')]));
+    closeDialogs();
+    sheet.innerHTML = `<form id="f" novalidate>
+      <div class="sh-head"><h2 id="sheetTitle">${item ? 'Edit' : 'New'} ${F.title}</h2><button class="iconbtn" type="button" data-act="close" aria-label="Close">✕</button></div>
+      <div class="sh-body">${F.fields.map(f => field(f, vals[f.k])).join('')}<p class="err" id="ferr" role="alert"></p></div>
+      <div class="sh-foot">${item ? `<button class="btn no" type="button" data-act="del" data-kind="${kind}" data-id="${esc(item.id)}">Delete</button>` : ''}<button class="btn gold big" type="submit">Save</button></div>
+    </form>`;
+    $('#f').addEventListener('submit', e => { e.preventDefault(); submitForm(kind, item); });
+    sheet.showModal();
+    sheet.scrollTop = 0;
+  }
+
+  function submitForm(kind, item) {
+    const F = FORMS[kind], form = $('#f'), out = {}, err = $('#ferr');
+    for (const f of F.fields) {
+      const el = form.elements[f.k];
+      let v = el.value.trim();
+      if (f.type === 'money') {
+        if (v === '' && el.validity && el.validity.badInput) { err.textContent = `${f.label} must be a number.`; el.focus(); return; }
+        v = v === '' ? 0 : Math.round(parseFloat(v) * 100) / 100;
+        if (!Number.isFinite(v) || v < 0) { err.textContent = `${f.label} must be a number of 0 or more.`; el.focus(); return; }
+      }
+      out[f.k] = v;
+    }
+    const missing = F.fields.find(f => f.req && (f.type === 'money' ? !(out[f.k] > 0) : out[f.k] === ''));
+    if (missing) { err.textContent = `${missing.label} is required.`; form.elements[missing.k].focus(); return; }
+    if (kind === 'invoice') {
+      if (db.invoices.some(i => i.number === out.number && i !== item)) { err.textContent = 'That invoice number is already used.'; form.elements.number.focus(); return; }
+      if (out.status === 'paid' && !out.paidOn) out.paidOn = today();
+      if (out.status !== 'paid') out.paidOn = '';
+    }
+    if (kind === 'approval') out.decided = out.status === 'pending' ? '' : (item && item.status === out.status && item.decided) || today();
+    if (item) Object.assign(item, out);
+    else db[F.list].push({ id: uid(), created: today(), ...out });
+    save(); sheet.close(); render();
+    toast(item ? 'Saved' : `${F.title[0].toUpperCase() + F.title.slice(1)} added`);
+  }
+
+  // ---------- small dialogs ----------
+  const askDlg = $('#ask');
+  function ask(text, okLabel) {
+    $('#askText').textContent = text; $('#askOk').textContent = okLabel || 'OK';
+    return new Promise(res => {
+      const done = v => { askDlg.close(); askDlg.querySelectorAll('button').forEach(b => b.onclick = null); askDlg.oncancel = null; res(v); };
+      askDlg.querySelectorAll('button').forEach(b => b.onclick = () => done(b.value === 'yes'));
+      askDlg.oncancel = () => done(false);
+      askDlg.showModal();
+    });
+  }
+  function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); }
+  for (const d of [sheet, $('#quick')]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
+  let toastT;
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
+
+  // ---------- views ----------
+  const filters = { projects: 'active', invoices: 'unpaid', approvals: 'pending' };
+  let query = '';
+  const chips = (kind, opts) => `<div class="chips" role="group" aria-label="Filter">${opts.map(([v, l]) => `<button class="chip" type="button" data-act="filter" data-kind="${kind}" data-v="${v}" aria-pressed="${filters[kind] === v}">${l}</button>`).join('')}</div>`;
+  const addBtn = (kind, label) => `<button class="btn gold" type="button" data-act="new" data-kind="${kind}">+ ${label}</button>`;
+  const isEmpty = () => LISTS.every(k => !db[k].length);
+  const hasSample = () => LISTS.some(k => db[k].some(x => x.sample));
+
+  function banners() {
+    let h = '';
+    if (!storageOk) h += `<div class="banner warn">This browser isn't letting the dashboard save. Open it from the Auto Haus app icon, and turn off private browsing.</div>`;
+    if (hasSample()) h += `<div class="banner"><span>You're looking at <b>sample data</b>. Your own entries stay when you remove it.</span><button class="btn" type="button" data-act="clear-sample">Remove sample data</button></div>`;
+    return h;
+  }
+
+  function overview() {
+    if (isEmpty()) return `<section class="empty">
+      <h2>Run the company from here</h2>
+      <p>Add your clients, projects and invoices, and the approvals your agents need from you. Money owed, late payments and decisions waiting on you show up at the top.</p>
+      <div class="row">${addBtn('client', 'Add a client')}<button class="btn" type="button" data-act="new" data-kind="project">+ Add a project</button></div>
+      <button class="linkbtn" type="button" data-act="sample">Try it with sample data first</button>
+      <p style="margin:12px 0 0;font-size:13.5px">Saved on this phone only. Nothing is sent online.</p>
+    </section>`;
+    const t = today(), ym = t.slice(0, 7), inv = db.invoices;
+    const paidMonth = inv.filter(i => i.status === 'paid' && (i.paidOn || '').startsWith(ym));
+    const unpaid = inv.filter(i => i.status === 'sent');
+    const late = inv.filter(i => invState(i) === 'overdue');
+    const active = db.projects.filter(p => p.stage !== 'Closed');
+    const needs = needsItems();
+    const kpi = (label, val, small, c) => `<div class="kpi"${c ? ` style="--c:${c}"` : ''}><span>${label}</span><b>${val}</b><small>${small}</small></div>`;
+
+    const months = [...Array(6)].map((_, k) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - (5 - k)); return iso(d).slice(0, 7); });
+    const paidBy = months.map(m => sum(inv.filter(i => i.status === 'paid' && (i.paidOn || '').startsWith(m))));
+    const maxPaid = Math.max(1, ...paidBy);
+    const stages = STAGES.filter(s => s !== 'Closed').map(s => [s, active.filter(p => p.stage === s)]);
+    const maxStage = Math.max(1, ...stages.map(([, ps]) => ps.length));
+
+    return `
+    <section>
+      <h2>Needs you${needs.length ? ` <span class="count">${needs.length}</span>` : ''}</h2>
+      ${needs.length ? `<div class="list">${needs.join('')}</div>` : `<p class="calm">Nothing needs you right now.</p>`}
+    </section>
+    <section class="kpis" aria-label="Key numbers">
+      ${kpi('Paid this month', money(sum(paidMonth)), plural(paidMonth.length, 'invoice'), 'var(--mint)')}
+      ${kpi('Waiting for payment', money(sum(unpaid)), plural(unpaid.length, 'invoice'), 'var(--gold)')}
+      ${kpi('Overdue', money(sum(late)), late.length ? plural(late.length, 'invoice') : 'none late', late.length ? 'var(--coral)' : '')}
+      ${kpi('Active projects', active.length, `${money(sum(active, 'value'))} in work`, 'var(--ice)')}
+    </section>
+    <section>
+      <h2>Paid by month</h2>
+      <div class="bars">${months.map((m, k) => `<div class="bar${paidBy[k] ? '' : ' zero'}" style="--c:var(--mint)"><span>${parse(m + '-01').toLocaleDateString(undefined, { month: 'short' })}</span><i style="--w:${(paidBy[k] / maxPaid * 100).toFixed(1)}%"></i><b>${money(paidBy[k])}</b></div>`).join('')}</div>
+    </section>
+    <section>
+      <h2>Projects by stage</h2>
+      <div class="bars">${stages.map(([s, ps]) => `<div class="bar${ps.length ? '' : ' zero'}" style="--c:var(--ice)"><span>${s}</span><i style="--w:${(ps.length / maxStage * 100).toFixed(1)}%"></i><b>${ps.length}${ps.length ? ` · ${money(sum(ps, 'value'), true)}` : ''}</b></div>`).join('')}</div>
+    </section>`;
+  }
+
+  // Everything that is waiting on the owner, most urgent first.
+  function needsItems() {
+    const t = today(), out = [];
+    db.approvals.filter(a => a.status === 'pending').sort((a, b) => (a.requested || '').localeCompare(b.requested || '')).forEach(a => {
+      const wait = a.requested ? daysFrom(a.requested, t) : 0;
+      out.push(`<div class="item hot" style="--c:var(--gold)">
+        <button class="itm" type="button" data-act="edit" data-kind="approval" data-id="${esc(a.id)}"><span class="row1"><strong>${esc(a.title)}</strong>${pill(APP_PILL.pending)}</span>
+        <span class="sub">${esc(a.from || 'Agent')} asks${a.projectId ? ` · ${esc(projectName(a.projectId))}` : ''}${wait > 0 ? ` · waiting ${plural(wait, 'day')}` : ''}</span></button>
+        <div class="acts"><button class="btn go" type="button" data-act="approve" data-id="${esc(a.id)}">Approve</button><button class="btn no" type="button" data-act="decline" data-id="${esc(a.id)}">Decline</button></div></div>`);
+    });
+    db.invoices.filter(i => invState(i) === 'overdue').sort((a, b) => a.due.localeCompare(b.due)).forEach(i => {
+      out.push(`<div class="item hot" style="--c:var(--coral)">
+        <button class="itm" type="button" data-act="edit" data-kind="invoice" data-id="${esc(i.id)}"><span class="row1"><strong>${esc(i.number)} is ${plural(daysFrom(i.due, t), 'day')} late</strong><span class="num">${money(i.amount)}</span></span>
+        <span class="sub">${esc(clientName(i.clientId))} · was due ${fmtDate(i.due)}</span></button>
+        <div class="acts"><button class="btn go" type="button" data-act="paid" data-id="${esc(i.id)}">Mark paid</button></div></div>`);
+    });
+    db.projects.filter(p => p.due && !['Closed', 'Care plan'].includes(p.stage) && daysFrom(t, p.due) <= 7).sort((a, b) => a.due.localeCompare(b.due)).forEach(p => {
+      const lateP = daysFrom(t, p.due) < 0;
+      out.push(`<div class="item${lateP ? ' hot' : ''}" style="--c:var(--coral)">
+        <button class="itm" type="button" data-act="edit" data-kind="project" data-id="${esc(p.id)}"><span class="row1"><strong>${esc(p.name)}</strong><span class="pill" style="--c:${lateP ? 'var(--coral)' : 'var(--ice)'}">${esc(dueText(p.due))}</span></span>
+        <span class="sub">${esc(p.stage)} · ${esc(clientName(p.clientId))}</span></button>
+        <div class="acts">${p.stage !== 'Closed' ? `<button class="btn" type="button" data-act="stage" data-id="${esc(p.id)}">Move to ${esc(STAGES[STAGES.indexOf(p.stage) + 1] || 'Closed')}</button>` : ''}</div></div>`);
+    });
+    db.invoices.filter(i => i.status === 'draft').forEach(i => {
+      out.push(`<div class="item">
+        <button class="itm" type="button" data-act="edit" data-kind="invoice" data-id="${esc(i.id)}"><span class="row1"><strong>${esc(i.number)} not sent yet</strong><span class="num">${money(i.amount)}</span></span>
+        <span class="sub">${esc(clientName(i.clientId))}</span></button>
+        <div class="acts"><button class="btn" type="button" data-act="sent" data-id="${esc(i.id)}">Mark sent</button></div></div>`);
+    });
+    return out;
+  }
+
+  function projects() {
+    const f = filters.projects;
+    const list = db.projects.filter(p => f === 'all' || (f === 'closed' ? p.stage === 'Closed' : p.stage !== 'Closed'))
+      .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || a.name.localeCompare(b.name));
+    return `<div class="tools">${chips('projects', [['active', 'Active'], ['closed', 'Closed'], ['all', 'All']])}${addBtn('project', 'Project')}</div>
+    ${list.length ? `<p class="total">${plural(list.length, 'project')} · ${money(sum(list, 'value'))} total value</p><div class="list">${list.map(p => {
+      const next = STAGES[STAGES.indexOf(p.stage) + 1];
+      const lateP = p.due && p.stage !== 'Closed' && p.stage !== 'Care plan' && daysFrom(today(), p.due) < 0;
+      return `<div class="item">
+        <button class="itm" type="button" data-act="edit" data-kind="project" data-id="${esc(p.id)}"><span class="row1"><strong>${esc(p.name)}</strong><span class="pill" style="--c:${p.stage === 'Closed' ? 'var(--muted)' : 'var(--ice)'}">${esc(p.stage)}</span></span>
+        <span class="sub">${esc(clientName(p.clientId))}${p.value ? ` · <span class="num">${money(p.value)}</span>` : ''}${p.due && p.stage !== 'Closed' ? ` · <span${lateP ? ' style="color:var(--coral)"' : ''}>${esc(dueText(p.due))}</span>` : ''}</span></button>
+        <div class="acts">${next ? `<button class="btn" type="button" data-act="stage" data-id="${esc(p.id)}">Move to ${esc(next)}</button>` : ''}</div></div>`;
+    }).join('')}</div>` : `<p class="calm">${f === 'closed' ? 'No closed projects yet.' : 'No projects yet. Tap “+ Project” to add one.'}</p>`}`;
+  }
+
+  function invoices() {
+    const f = filters.invoices;
+    const list = db.invoices.filter(i => { const s = invState(i); return f === 'all' || (f === 'unpaid' ? s !== 'paid' : s === f); })
+      .sort((a, b) => f === 'paid' ? (b.paidOn || '').localeCompare(a.paidOn || '') : (a.due || '9999').localeCompare(b.due || '9999'));
+    return `<div class="tools">${chips('invoices', [['unpaid', 'Unpaid'], ['overdue', 'Overdue'], ['paid', 'Paid'], ['all', 'All']])}${addBtn('invoice', 'Invoice')}</div>
+    ${list.length ? `<p class="total">${plural(list.length, 'invoice')} · <span class="num">${money(sum(list))}</span></p><div class="list">${list.map(i => {
+      const s = invState(i);
+      const when = s === 'paid' ? `paid ${fmtDate(i.paidOn)}` : s === 'draft' ? 'not sent yet' : s === 'overdue' ? `${plural(daysFrom(i.due, today()), 'day')} late` : (i.due ? dueText(i.due) : 'sent');
+      return `<div class="item">
+        <button class="itm" type="button" data-act="edit" data-kind="invoice" data-id="${esc(i.id)}"><span class="row1"><strong>${esc(i.number)} · ${esc(clientName(i.clientId))}</strong>${pill(INV_PILL[s])}</span>
+        <span class="sub"><span class="num" style="color:var(--fg)">${money(i.amount)}</span> · <span${s === 'overdue' ? ' style="color:var(--coral)"' : ''}>${esc(when)}</span>${i.projectId ? ` · ${esc(projectName(i.projectId))}` : ''}</span></button>
+        <div class="acts">${s === 'draft' ? `<button class="btn" type="button" data-act="sent" data-id="${esc(i.id)}">Mark sent</button>` : ''}${s === 'sent' || s === 'overdue' ? `<button class="btn go" type="button" data-act="paid" data-id="${esc(i.id)}">Mark paid</button>` : ''}</div></div>`;
+    }).join('')}</div>` : `<p class="calm">${{ unpaid: 'Nothing unpaid. Nice.', overdue: 'No late invoices.', paid: 'No paid invoices yet.', all: 'No invoices yet. Tap “+ Invoice” to add one.' }[f]}</p>`}`;
+  }
+
+  function clientList() {
+    const q = query.trim().toLowerCase();
+    const list = db.clients.filter(c => !q || [c.name, c.email, c.phone, c.notes].some(v => (v || '').toLowerCase().includes(q)))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    if (!db.clients.length) return `<p class="calm">No clients yet. Tap “+ Client” to add one.</p>`;
+    if (!list.length) return `<p class="calm">No client matches “${esc(query)}”.</p>`;
+    return `<div class="list">${list.map(c => {
+      const inv = db.invoices.filter(i => i.clientId === c.id), owed = inv.filter(i => i.status === 'sent');
+      const projs = db.projects.filter(p => p.clientId === c.id && p.stage !== 'Closed').length;
+      return `<div class="item">
+        <button class="itm" type="button" data-act="edit" data-kind="client" data-id="${esc(c.id)}"><span class="row1"><strong>${esc(c.name)}</strong>${owed.length ? `<span class="pill" style="--c:var(--gold)">owes ${esc(money(sum(owed)))}</span>` : ''}</span>
+        <span class="sub">${plural(projs, 'active project')} · paid ${money(sum(inv.filter(i => i.status === 'paid')))} so far</span></button>
+        <div class="acts">${c.phone ? `<a class="btn" href="tel:${esc(c.phone.replace(/[^\d+]/g, ''))}">Call ${esc(c.phone)}</a>` : ''}${c.email ? `<a class="btn" href="mailto:${esc(c.email)}">Email</a>` : ''}</div></div>`;
+    }).join('')}</div>`;
+  }
+  function clients() {
+    return `<div class="tools"><span class="muted">${plural(db.clients.length, 'client')}</span>${addBtn('client', 'Client')}</div>
+      ${db.clients.length > 4 ? `<input class="search" id="q" type="search" placeholder="Search clients" aria-label="Search clients" value="${esc(query)}" autocomplete="off">` : ''}
+      <div id="clientList">${clientList()}</div>`;
+  }
+
+  function approvals() {
+    const f = filters.approvals;
+    const list = db.approvals.filter(a => f === 'all' || (f === 'pending' ? a.status === 'pending' : a.status !== 'pending'))
+      .sort((a, b) => f === 'pending' ? (a.requested || '').localeCompare(b.requested || '') : (b.decided || b.requested || '').localeCompare(a.decided || a.requested || ''));
+    return `<div class="tools">${chips('approvals', [['pending', 'Waiting on you'], ['decided', 'Decided'], ['all', 'All']])}${addBtn('approval', 'Approval')}</div>
+    ${list.length ? `<div class="list">${list.map(a => `<div class="item${a.status === 'pending' ? ' hot' : ''}" style="--c:var(--gold)">
+        <button class="itm" type="button" data-act="edit" data-kind="approval" data-id="${esc(a.id)}"><span class="row1"><strong>${esc(a.title)}</strong>${pill(APP_PILL[a.status] || APP_PILL.pending)}</span>
+        <span class="sub">${esc(a.from || 'Agent')}${a.projectId ? ` · ${esc(projectName(a.projectId))}` : ''} · ${a.status === 'pending' ? `asked ${fmtDate(a.requested)}` : `${esc(a.status)} ${fmtDate(a.decided)}`}${a.notes ? `<br>${esc(a.notes)}` : ''}</span></button>
+        <div class="acts">${a.status === 'pending' ? `<button class="btn go" type="button" data-act="approve" data-id="${esc(a.id)}">Approve</button><button class="btn no" type="button" data-act="decline" data-id="${esc(a.id)}">Decline</button>` : ''}</div></div>`).join('')}</div>`
+      : `<p class="calm">${f === 'pending' ? 'Nothing is waiting on you.' : 'No decisions here yet.'}</p>`}
+    <p class="muted" style="font-size:13.5px;margin-top:14px">Add anything an agent needs you to sign off: a production deploy, a quote, a contract, a refund.</p>`;
+  }
+
+  function settings() {
+    const s = db.settings, cur = CURRENCIES.includes(s.currency) ? CURRENCIES : [...CURRENCIES, s.currency];
+    return `<section class="card">
+      <label class="fld" for="s_company"><span>Company name</span><input id="s_company" value="${esc(s.company)}" autocomplete="organization"></label>
+      <label class="fld" for="s_currency"><span>Currency</span><select id="s_currency">${cur.map(c => `<option${c === s.currency ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+      <div class="row"><button class="btn gold" type="button" data-act="save-settings">Save</button></div>
+    </section>
+    <section class="card">
+      <h2>Backup</h2>
+      <p>Everything is saved on this phone only, nothing goes online. On iPhone, the home-screen app and Safari keep separate copies, so always open the dashboard from the Auto Haus icon. Save a backup now and then: it's a small file you can keep in Files, Drive or email.</p>
+      <p class="num" style="color:var(--fg)">${plural(db.clients.length, 'client')} · ${plural(db.projects.length, 'project')} · ${plural(db.invoices.length, 'invoice')} · ${plural(db.approvals.length, 'approval')}</p>
+      <div class="row"><button class="btn gold" type="button" data-act="export">Save a backup</button><button class="btn" type="button" data-act="import">Restore a backup</button></div>
+    </section>
+    <section class="card">
+      <h2>Start over</h2>
+      <p>Erase every client, project, invoice and approval from this phone.</p>
+      <div class="row">${hasSample() ? '<button class="btn" type="button" data-act="clear-sample">Remove sample data</button>' : ''}<button class="btn no" type="button" data-act="erase">Erase all data</button></div>
+    </section>
+    <p class="muted" style="font-size:13.5px"><a href="./">Back to the 3D company view</a></p>`;
+  }
+
+  const VIEWS = { overview, projects, invoices, clients, approvals, settings };
+  function route() { const v = location.hash.slice(1); return VIEWS[v] ? v : 'overview'; }
+  function render() {
+    const v = route();
+    $('#company').textContent = db.settings.company || 'Auto Haus Software Company';
+    $('#title').textContent = TITLES[v];
+    document.title = `${TITLES[v]} · Auto Haus owner`;
+    document.querySelectorAll('.tabs a').forEach(a => { if (a.hash === '#' + v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    const pending = db.approvals.filter(a => a.status === 'pending').length, badge = $('#badge');
+    badge.hidden = !pending; badge.textContent = pending;
+    $('#view').innerHTML = banners() + VIEWS[v]();
+    const q = $('#q');
+    if (q) q.addEventListener('input', () => { query = q.value; $('#clientList').innerHTML = clientList(); });
+  }
+
+  // ---------- actions ----------
+  function sample() {
+    const t = today(), d = n => addDays(t, n), id = uid;
+    const c1 = id(), c2 = id(), c3 = id(), p1 = id(), p2 = id(), p3 = id(), p4 = id();
+    const S = { sample: true, created: t };
+    db.clients.push(
+      { ...S, id: c1, name: 'Cedar Dental Clinic', email: 'office@cedardental.example', phone: '+1 555 0142', notes: 'Wants online booking before spring.' },
+      { ...S, id: c2, name: 'Harbor Coffee Co.', email: 'hello@harborcoffee.example', phone: '+1 555 0187', notes: '' },
+      { ...S, id: c3, name: 'Nour Fitness Studio', email: 'nour@nourfit.example', phone: '', notes: 'Referred by Harbor Coffee.' });
+    db.projects.push(
+      { ...S, id: p1, name: 'Clinic booking website', clientId: c1, stage: 'Build', value: 6400, due: d(5), notes: '' },
+      { ...S, id: p2, name: 'Coffee shop online ordering', clientId: c2, stage: 'QA', value: 4800, due: d(12), notes: '' },
+      { ...S, id: p3, name: 'Gym membership app', clientId: c3, stage: 'Proposal', value: 9200, due: d(60), notes: '' },
+      { ...S, id: p4, name: 'Cedar website care plan', clientId: c1, stage: 'Care plan', value: 150, due: '', notes: 'Monthly care plan.' });
+    const n = db.invoices.length;
+    const num = k => 'INV-' + String(n + k).padStart(4, '0') + '-S';
+    db.invoices.push(
+      { ...S, id: id(), number: num(1), clientId: c1, projectId: p4, amount: 150, status: 'paid', issued: d(-62), due: d(-48), paidOn: d(-50) },
+      { ...S, id: id(), number: num(2), clientId: c2, projectId: p2, amount: 2400, status: 'paid', issued: d(-35), due: d(-21), paidOn: d(-24) },
+      { ...S, id: id(), number: num(3), clientId: c1, projectId: p1, amount: 3200, status: 'paid', issued: d(-14), due: d(0), paidOn: d(-2) },
+      { ...S, id: id(), number: num(4), clientId: c1, projectId: p4, amount: 150, status: 'sent', issued: d(-20), due: d(-6), paidOn: '' },
+      { ...S, id: id(), number: num(5), clientId: c2, projectId: p2, amount: 2400, status: 'sent', issued: d(-3), due: d(11), paidOn: '' },
+      { ...S, id: id(), number: num(6), clientId: c3, projectId: p3, amount: 2760, status: 'draft', issued: t, due: d(14), paidOn: '' });
+    db.approvals.push(
+      { ...S, id: id(), title: 'Deploy coffee ordering site to production', from: 'Build & DevOps', projectId: p2, requested: d(-1), status: 'pending', decided: '', notes: 'QA and Security both signed off.' },
+      { ...S, id: id(), title: 'Send proposal and quote to Nour Fitness', from: 'Commercial', projectId: p3, requested: d(-2), status: 'pending', decided: '', notes: 'Quote: 9,200 with 30% upfront.' },
+      { ...S, id: id(), title: 'Use Stripe for clinic deposits', from: 'Research', projectId: p1, requested: d(-9), status: 'approved', decided: d(-8), notes: '' });
+    save(); render(); toast('Sample data added');
+  }
+
+  async function exportData() {
+    const name = `auto-haus-backup-${today()}.json`;
+    const text = JSON.stringify(db, null, 2);
+    try {
+      const file = new File([text], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Auto Haus backup' }); toast('Backup ready'); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    toast('Backup saved');
+  }
+  $('#importFile').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    let n;
+    try { const d = JSON.parse(await f.text()); if (!d || !LISTS.some(k => Array.isArray(d[k]))) throw new Error('not a backup'); n = normalize(d); }
+    catch (_) { toast("That file isn't an Auto Haus backup."); return; }
+    if (!await ask(`Replace everything on this phone with this backup? It has ${plural(n.clients.length, 'client')}, ${plural(n.projects.length, 'project')} and ${plural(n.invoices.length, 'invoice')}.`, 'Restore')) return;
+    db = n; save(); render(); toast('Backup restored');
+  });
+
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const { act, id, kind } = b.dataset;
+    if (act === 'quick') { closeDialogs(); $('#quick').showModal(); }
+    else if (act === 'close') b.closest('dialog').close();
+    else if (act === 'new') openForm(kind);
+    else if (act === 'edit') openForm(kind, id);
+    else if (act === 'filter') { filters[kind] = b.dataset.v; render(); }
+    else if (act === 'approve' || act === 'decline') {
+      const a = byId('approvals', id); if (!a) return;
+      a.status = act === 'approve' ? 'approved' : 'declined'; a.decided = today(); save(); render();
+      toast(act === 'approve' ? 'Approved' : 'Declined');
+    }
+    else if (act === 'paid') { const i = byId('invoices', id); if (!i) return; i.status = 'paid'; i.paidOn = today(); save(); render(); toast(`${i.number} marked paid`); }
+    else if (act === 'sent') { const i = byId('invoices', id); if (!i) return; i.status = 'sent'; save(); render(); toast(`${i.number} marked sent`); }
+    else if (act === 'stage') {
+      const p = byId('projects', id); if (!p) return;
+      p.stage = STAGES[Math.min(STAGES.length - 1, STAGES.indexOf(p.stage) + 1)]; save(); render(); toast(`${p.name} moved to ${p.stage}`);
+    }
+    else if (act === 'del') {
+      const F = FORMS[kind], item = byId(F.list, id); if (!item) return;
+      if (kind === 'client') {
+        const np = db.projects.filter(p => p.clientId === id).length, ni = db.invoices.filter(i => i.clientId === id).length;
+        if (np || ni) { $('#ferr').textContent = `This client still has ${plural(np, 'project')} and ${plural(ni, 'invoice')}. Delete or move those first.`; return; }
+      }
+      const label = item.name || item.number || item.title;
+      if (!await ask(`Delete “${label}”? This can't be undone.`, 'Delete')) return;
+      db[F.list] = db[F.list].filter(x => x.id !== id);
+      if (kind === 'project') { db.invoices.forEach(i => { if (i.projectId === id) i.projectId = ''; }); db.approvals.forEach(a => { if (a.projectId === id) a.projectId = ''; }); }
+      save(); sheet.close(); render(); toast('Deleted');
+    }
+    else if (act === 'sample') sample();
+    else if (act === 'clear-sample') {
+      if (!await ask('Remove all sample data? Anything you added yourself stays.', 'Remove')) return;
+      for (const k of LISTS) db[k] = db[k].filter(x => !x.sample);
+      save(); render(); toast('Sample data removed');
+    }
+    else if (act === 'save-settings') {
+      db.settings.company = $('#s_company').value.trim() || 'Auto Haus Software Company';
+      db.settings.currency = $('#s_currency').value;
+      save(); render(); toast('Settings saved');
+    }
+    else if (act === 'export') exportData();
+    else if (act === 'import') $('#importFile').click();
+    else if (act === 'erase') {
+      if (!await ask('Erase every client, project, invoice and approval on this phone? Save a backup first if you might need it.', 'Erase all')) return;
+      db = { ...blank(), settings: db.settings }; save(); render(); toast('All data erased');
+    }
+  });
+
+  window.addEventListener('hashchange', () => { closeDialogs(); render(); window.scrollTo(0, 0); });
+  // Another tab or the 3D page could change the data; keep this view current.
+  window.addEventListener('storage', e => { if (e.key === KEY) { db = load(); render(); } });
+  render();
+}
+</script>
+</body>
+</html>

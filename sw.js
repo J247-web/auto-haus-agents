@@ -1,8 +1,8 @@
 // Lets the home-screen app open even without a connection.
 // Network first: when online you always get the newest version from GitHub Pages; the cache is only a fallback.
-const CACHE = 'auto-haus-v1';
+const CACHE = 'auto-haus-v2';
 const ASSETS = [
-  './', 'index.html', 'three.module.min.js', 'three.core.min.js',
+  './', 'index.html', 'owner.html', 'three.module.min.js', 'three.core.min.js',
   'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
 ];
 
