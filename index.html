@@ -30,6 +30,7 @@
   --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
   color-scheme: dark;
 }
+*, *::before, *::after { box-sizing: border-box; } /* widths like calc(100% - 32px) include padding, so panels fit small phones */
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font-family: var(--display); overflow: hidden; }
 .app { position: relative; height: 100%; overflow: hidden; }
@@ -37,7 +38,8 @@ body { background: var(--bg); color: var(--fg); font-family: var(--display); ove
 #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 #stage canvas.dragging { cursor: grabbing; }
 
-#labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+#labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; } /* own layer: agent labels stay under the card and dock */
+.card, .dock { z-index: 2; }
 .lbl {
   position: absolute; left: 0; top: 0; pointer-events: auto;
   font: 500 10.5px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase;
@@ -436,20 +438,28 @@ window.THREE = THREE_NS;
   const routes = STEPS.filter(s => s.from !== 'sky').map(s => {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ROUTE_N * 3), 3));
+    // Allocated once and updated in place. computeLineDistances() makes a new GPU buffer on every
+    // call and never frees the old one, which leaked 13 buffers per frame and crashed mobile Safari.
+    geo.setAttribute('lineDistance', new THREE.BufferAttribute(new Float32Array(ROUTE_N), 1));
     const line = new THREE.Line(geo, new THREE.LineDashedMaterial({
       color: DEPT[byId[s.from].dept].hex, transparent: true, opacity: 0.3, dashSize: 0.16, gapSize: 0.1, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
     line.frustumCulled = false;
     scene.add(line);
     return { s, line };
   });
+  const PREV = new THREE.Vector3();
   function updateRoutes(dt) {
     const cur = STEPS[stepIdx];
     routes.forEach(r => {
       setCurve(r.s.from, r.s.to);
-      const pos = r.line.geometry.attributes.position;
-      for (let i = 0; i < ROUTE_N; i++) { bez(i / (ROUTE_N - 1), P); pos.setXYZ(i, P.x, P.y, P.z); }
-      pos.needsUpdate = true;
-      r.line.computeLineDistances();
+      const pos = r.line.geometry.attributes.position, ld = r.line.geometry.attributes.lineDistance;
+      let run = 0;
+      for (let i = 0; i < ROUTE_N; i++) {
+        bez(i / (ROUTE_N - 1), P); pos.setXYZ(i, P.x, P.y, P.z);
+        if (i > 0) run += P.distanceTo(PREV);
+        ld.setX(i, run); PREV.copy(P);
+      }
+      pos.needsUpdate = true; ld.needsUpdate = true;
       const target = r.s === cur ? 0.9 : 0.3;
       r.line.material.opacity += (target - r.line.material.opacity) * Math.min(1, dt * 3);
     });
@@ -498,9 +508,11 @@ window.THREE = THREE_NS;
     el.querySelector('.full').textContent = a.ring === 0 ? 'COO · Command' : a.name;
     el.querySelector('.short').textContent = a.short;
     el.setAttribute('aria-label', a.name + ', ' + DEPT[a.dept].label);
-    el.addEventListener('mouseenter', () => setHover(a));
-    el.addEventListener('mouseleave', () => setHover(pinned));
-    el.addEventListener('focus', () => setHover(a));
+    // Hover preview is for a real mouse and keyboard focus only. On a phone tap these used to open the
+    // card mid-tap, the card then covered the label and swallowed the click, so the card never stayed open.
+    el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') setHover(a); });
+    el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') setHover(pinned); });
+    el.addEventListener('focus', () => { if (el.matches(':focus-visible')) setHover(a); });
     el.addEventListener('blur', () => setHover(pinned));
     el.addEventListener('click', () => { pinned = pinned === a ? null : a; setHover(pinned || a); });
     labelsEl.appendChild(el);
